@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dados>
+    <item>
+        <id>1</id>
+        <nome>Exemplo Genérico</nome>
+        <tipo>XML</tipo>
+        <descricao>Este é um arquivo XML estruturado para fins de teste.</descricao>
+    </item>
+</dados>
