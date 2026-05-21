@@ -4,4 +4,5 @@ myenv
 __pycache__/
 node_modules/
 .DS_Store/
-log_register
+log_register/
+NFeMeuPai1.pdf
