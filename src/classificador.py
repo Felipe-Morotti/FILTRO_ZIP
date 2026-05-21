@@ -2,6 +2,7 @@ from pathlib import Path
 from zipfile import ZipFile
 import logging
 from ver_postscript import tem_postscript
+from valida_ext import validar_formato
 
 BASE_DIR = Path(__file__).parents[1]
 FILTERED_DATA_DIR = BASE_DIR / 'filtered_data'
@@ -11,6 +12,7 @@ DICIONARIO_PASTAS: dict[str, Path] = {
     'JPEG':      FILTERED_DATA_DIR / 'jpg',
     'PDF_NO_PS': FILTERED_DATA_DIR / 'pdf_no_ps',
     'PDF':       FILTERED_DATA_DIR / 'pdf',
+    'QUARENTENA': FILTERED_DATA_DIR / 'quarentena'
 }
 
 EXTENSOES_JPEG = {'.jpg', '.jpeg'} 
@@ -20,6 +22,15 @@ def salvar_arquivo(logger: logging.Logger, destino: Path, dados: bytes) -> None:
     destino.parent.mkdir(parents=True, exist_ok=True)
     destino.write_bytes(dados)
     logger.info(f"Arquivo salvo em: {destino}")
+
+
+def quarentenar(logger: logging.Logger, nome: str, extensao: str, dados: bytes) -> None:
+    destino = DICIONARIO_PASTAS['QUARENTENA'] / f"{nome}.quarantine"
+    salvar_arquivo(logger, destino, dados)
+    logger.warning(
+        f"Quarentena | '{nome}' rejeitado: "
+        f"extensão '{extensao}' não corresponde ao conteúdo real do arquivo."
+    )
 
 
 def classificador(logger: logging.Logger, zip_path: Path) -> None:
@@ -36,6 +47,10 @@ def classificador(logger: logging.Logger, zip_path: Path) -> None:
                 continue
 
             dados = zipped.read(arquivo)
+
+            if not validar_formato(dados, ext):
+                quarentenar(logger, nome, ext, dados)
+                continue
 
             if ext == '.xml':
                 destino = DICIONARIO_PASTAS['XML'] / nome
