@@ -2,7 +2,7 @@ from pathlib import Path
 from zipfile import ZipFile
 import logging
 import filetype
-from ver_postscript import tem_postscript
+from verif_postscript import tem_postscript
 
 BASE_DIR = Path(__file__).parents[1]
 FILTERED_DATA_DIR = BASE_DIR / 'filtered_data'
@@ -51,7 +51,7 @@ def classificador(logger: logging.Logger, zip_path: Path) -> None:
         arquivos = zipped.namelist()
         logger.info(f"ZIP lido. {len(arquivos)} arquivo(s) encontrado(s). \u2705")
 
-        for arquivo in arquivos:
+        for i, arquivo in enumerate(arquivos, 1):
             path_arquivo = Path(arquivo)
             nome = path_arquivo.name
             ext = path_arquivo.suffix.lower()
@@ -77,9 +77,10 @@ def classificador(logger: logging.Logger, zip_path: Path) -> None:
                 else:
                     destino = DICIONARIO_PASTAS['PDF_NO_PS'] / nome
 
-
             else:
                 logger.warning(f"Extensão não reconhecida, ignorando: {nome}")
                 continue
+
+            logger.info(f"Arquivo {i} classificado com sucesso. \u2705")
 
             salvar_arquivo(logger, destino, dados)
