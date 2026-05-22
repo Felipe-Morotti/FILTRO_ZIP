@@ -1,8 +1,8 @@
 from pathlib import Path
 from zipfile import ZipFile
 import logging
+import filetype
 from ver_postscript import tem_postscript
-from valida_ext import validar_formato
 
 BASE_DIR = Path(__file__).parents[1]
 FILTERED_DATA_DIR = BASE_DIR / 'filtered_data'
@@ -31,6 +31,19 @@ def quarentenar(logger: logging.Logger, nome: str, extensao: str, dados: bytes) 
         f"Quarentena | '{nome}' rejeitado: "
         f"extensão '{extensao}' não corresponde ao conteúdo real do arquivo."
     )
+
+
+def validar_formato(dados: bytes, extensao: str) -> bool:
+    tipo = filetype.guess(dados)
+    if tipo is None:
+        return extensao in ('.xml',) and dados.startswith(b'<?xml')
+
+    mapa = {
+        '.pdf':  'application/pdf',
+        '.jpg':  'image/jpeg',
+        '.jpeg': 'image/jpeg',
+    }
+    return mapa.get(extensao) == tipo.mime
 
 
 def classificador(logger: logging.Logger, zip_path: Path) -> None:

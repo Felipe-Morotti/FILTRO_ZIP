@@ -19,7 +19,8 @@ LOG_PATH = BASE_DIR / 'log_register' / 'classificacao.log'
 logger_pronto = set_logger(LOG_PATH)
 
 def main(logger: logging.Logger) -> None:
-    classificador(logger_pronto, RAW_DATA_PATH)
+    with log_timer(logger_pronto, "Classificação dos arquivos."):
+        classificador(logger_pronto, RAW_DATA_PATH)
 
 
 if __name__ == "__main__":
