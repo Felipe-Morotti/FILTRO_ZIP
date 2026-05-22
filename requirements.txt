@@ -1,0 +1,4 @@
+filetype==1.2.0
+logging==0.4.9.6
+pathlib==1.0.1
+pypdf==6.12.1
