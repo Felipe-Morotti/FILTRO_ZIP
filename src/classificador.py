@@ -1,10 +1,12 @@
 from pathlib import Path
 from zipfile import ZipFile
 import logging
-import filetype
-from verif_postscript import tem_postscript
+import sys
 
 BASE_DIR = Path(__file__).parents[1]
+sys.path.append(str(BASE_DIR))
+
+from Tools.utils import salvar_arquivo, quarentenar, validar_formato, tem_postscript
 FILTERED_DATA_DIR = BASE_DIR / 'filtered_data'
 
 DICIONARIO_PASTAS: dict[str, Path] = {
@@ -17,33 +19,6 @@ DICIONARIO_PASTAS: dict[str, Path] = {
 
 EXTENSOES_JPEG = {'.jpg', '.jpeg'} 
 
-
-def salvar_arquivo(logger: logging.Logger, destino: Path, dados: bytes) -> None:
-    destino.parent.mkdir(parents=True, exist_ok=True)
-    destino.write_bytes(dados)
-    logger.info(f"Arquivo salvo em: {destino}")
-
-
-def quarentenar(logger: logging.Logger, nome: str, extensao: str, dados: bytes) -> None:
-    destino = DICIONARIO_PASTAS['QUARENTENA'] / f"{nome}.quarantine"
-    salvar_arquivo(logger, destino, dados)
-    logger.warning(
-        f"Quarentena | '{nome}' rejeitado: "
-        f"extensão '{extensao}' não corresponde ao conteúdo real do arquivo."
-    )
-
-
-def validar_formato(dados: bytes, extensao: str) -> bool:
-    tipo = filetype.guess(dados)
-    if tipo is None:
-        return extensao in ('.xml',) and dados.startswith(b'<?xml')
-
-    mapa = {
-        '.pdf':  'application/pdf',
-        '.jpg':  'image/jpeg',
-        '.jpeg': 'image/jpeg',
-    }
-    return mapa.get(extensao) == tipo.mime
 
 
 def classificador(logger: logging.Logger, zip_path: Path) -> None:
@@ -67,7 +42,7 @@ def classificador(logger: logging.Logger, zip_path: Path) -> None:
 
             if ext == '.xml':
                 destino = DICIONARIO_PASTAS['XML'] / nome
-
+            
             elif ext in EXTENSOES_JPEG:
                 destino = DICIONARIO_PASTAS['JPEG'] / nome
 

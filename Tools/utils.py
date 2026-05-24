@@ -1,38 +1,73 @@
-import logging
 from pathlib import Path
-import time
-from contextlib import contextmanager
+import logging
+import filetype
+import io
+from pypdf import PdfReader
 
-def set_logger(log_path: Path) -> logging.Logger:
-    logger = logging.getLogger("classificacao")
-    logger.setLevel(logging.DEBUG)
+BASE_DIR = Path(__file__).parents[1]
+FILTERED_DATA_DIR = BASE_DIR / 'filtered_data'
+DICIONARIO_PASTAS: dict[str, Path] = {
+    'XML':       FILTERED_DATA_DIR / 'xml',
+    'JPEG':      FILTERED_DATA_DIR / 'jpg',
+    'PDF_NO_PS': FILTERED_DATA_DIR / 'pdf_no_ps',
+    'PDF':       FILTERED_DATA_DIR / 'pdf',
+    'QUARENTENA': FILTERED_DATA_DIR / 'quarentena'
+}
 
-    formatter = logging.Formatter(
-        fmt="%(asctime)s [%(levelname)s] %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S"
+
+def salvar_arquivo(logger: logging.Logger, destino: Path, dados: bytes) -> None:
+    destino.parent.mkdir(parents=True, exist_ok=True)
+    destino.write_bytes(dados)
+    logger.info(f"Arquivo salvo em: {destino}")
+
+
+def quarentenar(logger: logging.Logger, nome: str, extensao: str, dados: bytes) -> None:
+    destino = DICIONARIO_PASTAS['QUARENTENA'] / f"{nome}.quarantine"
+    salvar_arquivo(logger, destino, dados)
+    logger.warning(
+        f"Quarentena | '{nome}' rejeitado: "
+        f"extensão '{extensao}' não corresponde ao conteúdo real do arquivo."
     )
 
-    # salva em arquivo
-    file_handler = logging.FileHandler(log_path, encoding="utf-8")
-    file_handler.setFormatter(formatter)
 
-    # também mostra no terminal
-    console_handler = logging.StreamHandler()
-    console_handler.setFormatter(formatter)
+def validar_formato(dados: bytes, extensao: str) -> bool:
+    tipo = filetype.guess(dados)
+    if tipo is None:
+        return extensao in ('.xml',) and dados.startswith(b'<?xml')
 
-    logger.addHandler(file_handler)
-    logger.addHandler(console_handler)
+    mapa = {
+        '.pdf':  'application/pdf',
+        '.jpg':  'image/jpeg',
+        '.jpeg': 'image/jpeg',
+    }
+    return mapa.get(extensao) == tipo.mime
 
-    return logger
 
 
-@contextmanager
-def log_timer(logger: logging.Logger, tarefa: str):
-    inicio = time.perf_counter()
-    logger.info(f"Iniciando: {tarefa} ⏳")
+def tem_postscript(dados: bytes) -> bool:
     try:
-        yield  # Aqui é onde o código dentro do 'with' será executado
-    finally:
-        fim = time.perf_counter()
-        duracao = fim - inicio
-        logger.info(f"Finalizado: {tarefa} | Tempo: {duracao:.2f}s ✅")
+        leitor = PdfReader(io.BytesIO(dados))
+
+        for page in leitor.pages:
+            resources = page.get("/Resources")
+            if not resources:
+                continue
+
+            # Verifica XObjects do subtipo PostScript
+            xobjects = resources.get("/XObject", {})
+            for obj_ref in xobjects.values():
+                obj = obj_ref.get_object()
+                if obj.get("/Subtype") == "/PS":
+                    return True
+
+            # Verifica fontes Type 1 (PostScript-based)
+            fonts = resources.get("/Font", {})
+            for font_ref in fonts.values():
+                font = font_ref.get_object()
+                if font.get("/Subtype") == "/Type1":
+                    return True
+
+        return False
+
+    except Exception:
+        return False  # PDF corrompido ou ilegível

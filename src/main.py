@@ -6,8 +6,8 @@ from classificador import classificador
 BASE_DIR = Path(__file__).parents[1]
 sys.path.append(str(BASE_DIR))
 
-from Tools.utils import set_logger
-from Tools.utils import log_timer
+from Tools.log import set_logger
+from Tools.log import log_timer
 
 RAW_DATA_DIR = BASE_DIR / 'raw_data'      
 RAW_DATA_PATH = RAW_DATA_DIR / 'hospede_do_zip' / 'arquivos_genericos.zip'
